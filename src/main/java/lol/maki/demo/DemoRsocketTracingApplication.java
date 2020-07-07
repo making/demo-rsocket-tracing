@@ -2,6 +2,7 @@ package lol.maki.demo;
 
 import brave.Span.Kind;
 import brave.Tracing;
+import io.rsocket.metadata.WellKnownMimeType;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -19,9 +20,9 @@ public class DemoRsocketTracingApplication {
 	@Bean
 	public RSocketServerCustomizer serverRSocketFactoryProcessor(Tracing tracing) {
 		return server -> server.interceptors(interceptorRegistry -> {
-			interceptorRegistry.forResponder(rSocket -> {
-				return new TracingRSocketProxy(rSocket, tracing, Kind.SERVER);
-			});
+			interceptorRegistry.forSocketAcceptor(socketAcceptor -> (setup, sendingSocket) -> socketAcceptor
+					.accept(setup, sendingSocket)
+					.map(rSocket -> new TracingRSocketProxy(rSocket, WellKnownMimeType.fromString(setup.metadataMimeType()), tracing, Kind.SERVER)));
 		});
 	}
 }
